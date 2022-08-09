@@ -63,12 +63,5 @@ export class InteractionController implements OnStart, OnInit, OnRender {
 			this.activeInteractables.set(keycode, interactable);
 			interactable.activate();
 		});
-
-		// make the closest interactable of each keycode's transparency 0.5
-		closestInteractables.forEach((interactable, keycode) => {
-			const part = interactable.getInstance();
-			if (part === undefined) return;
-			part.Transparency = 0.5;
-		});
 	}
 }

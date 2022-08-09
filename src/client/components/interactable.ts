@@ -21,8 +21,12 @@ export class Interactable extends BaseComponent<Attributes> {
 	}
 
 	public activate() {
-		
+		if (!this.instance.IsA("BasePart")) return;
+		this.instance.Color = new Color3(0, 1, 0);
 	}
 
-	public deactivate() {}
+	public deactivate() {
+		if (!this.instance.IsA("BasePart")) return;
+		this.instance.Color = new Color3(1, 0, 0);
+	}
 }
