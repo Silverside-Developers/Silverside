@@ -11,7 +11,11 @@ interface Attributes {
 		keycode: Enum.KeyCode.F,
 	},
 })
-export class Interactable extends BaseComponent<Attributes> {
+export class Interactable extends BaseComponent<Attributes> implements OnStart {
+	onStart(): void {
+		this.deactivate();
+	}
+
 	public getKeyCode(): Enum.KeyCode {
 		return this.attributes.keycode;
 	}
