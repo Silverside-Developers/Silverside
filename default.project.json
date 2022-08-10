@@ -1,5 +1,5 @@
 {
-	"name": "flamework-game",
+	"name": "kip-county",
 	"globIgnorePaths": [
 		"**/package.json",
 		"**/tsconfig.json"
