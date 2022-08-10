@@ -1,4 +1,4 @@
-import { Controller, OnInit, OnStart } from "@flamework/core";
+import { Controller, Flamework, OnInit, Reflect } from "@flamework/core";
 import Log from "@rbxts/log";
 import Roact from "@rbxts/roact";
 import RoactRodux, { StoreProvider } from "@rbxts/roact-rodux";
@@ -6,6 +6,7 @@ import Rodux from "@rbxts/rodux";
 import { Players } from "@rbxts/services";
 import { ClientStore, IClientStore, StoreActions } from "client/rodux/rodux";
 import { Scene } from "types/enums/scene";
+import { DecoratorMetadata } from "types/interfaces/flamework";
 import { SceneController } from "./scene-controller";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,6 +45,23 @@ export class AppController implements OnInit {
 
 	onInit() {
 		this.sceneController.onSceneChanged.Connect((n, o) => this.onSceneChanged(n, o));
+
+		for (const [ctor, identifier] of Reflect.objToId) {
+			const app = Reflect.getOwnMetadata<DecoratorMetadata<IAppConfig>>(
+				ctor,
+				`flamework:decorators.${Flamework.id<typeof App>()}`,
+			);
+
+			if (app) {
+				const config = app.arguments[0];
+
+				this.apps.set(ctor as Constructor, {
+					ctor: ctor as Constructor,
+					config,
+					identifier,
+				});
+			}
+		}
 	}
 
 	private onSceneChanged(newScene: Scene, oldScene?: Scene) {
