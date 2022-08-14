@@ -1,0 +1,16 @@
+{
+	"UI Component": {
+		"prefix":[ "uic", "uicomponent"],
+		"description": "Create a UI component",
+		"body": [
+			"import Roact from \"@rbxts/roact\";",
+			"import Hooks from \"@rbxts/roact-hooks\";",
+			"\ninterface Props {}",
+			"\nexport const ${TM_FILENAME_BASE/(.*)/${1:/pascalcase}/g}: Hooks.FC<Props> = (props) => {",
+			"\treturn ${2:<></>};",
+			"};\n",
+		]
+	},
+
+	
+}
