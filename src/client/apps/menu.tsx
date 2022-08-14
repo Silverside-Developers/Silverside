@@ -5,12 +5,14 @@ import { Scene } from "types/enums/scene";
 interface IProps {}
 
 @App({
-	name: "menu",
-	requiredScenes: [Scene.Menu],
+	name: "CurrencyApp",
+	requiredScenes: [Scene.World],
 	ignoreGuiInset: true,
 })
-export class MenuApp extends Roact.PureComponent<IProps> {
-	public render(): Roact.Element | undefined {
+class CurrencyApp extends Roact.PureComponent<IProps> {
+	public render() {
 		return <></>;
 	}
 }
+
+export = CurrencyApp;

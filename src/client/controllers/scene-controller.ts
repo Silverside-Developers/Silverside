@@ -1,39 +1,39 @@
-// Modified code from grilme99
-
-import { Controller, OnStart, OnInit } from "@flamework/core";
+import { Controller, OnStart } from "@flamework/core";
 import Log from "@rbxts/log";
 import Signal from "@rbxts/signal";
 import { ClientStore } from "client/rodux/rodux";
 import { Scene } from "types/enums/scene";
 
 @Controller({})
-export class SceneController implements OnStart {
-	public readonly onSceneChanged = new Signal<(newScene: Scene, oldScene?: Scene) => void>();
+export default class SceneController implements OnStart {
+	public OnSceneChanged = new Signal<(newScene: Scene, oldScene?: Scene) => void>();
 
-	onStart() {
-		this.onSceneChangedCallback(ClientStore.getState().gameState.openScene);
+	public onStart(): void {
+		// Run changed outside of event so that the initial state is captured
+		this.onSceneChanged(ClientStore.getState().gameState.openScene);
 
 		ClientStore.changed.connect((newState, oldState) => {
 			if (newState.gameState.openScene !== oldState.gameState.openScene) {
-				this.onSceneChangedCallback(newState.gameState.openScene, oldState.gameState.openScene);
+				this.onSceneChanged(newState.gameState.openScene, oldState.gameState.openScene);
 			}
 		});
 	}
 
 	public getSceneEnteredSignal(scene: Scene): Signal {
 		const sceneEntered = new Signal();
-		this.onSceneChanged.Connect((newScene, oldScene) => {
+		this.OnSceneChanged.Connect((newScene) => {
 			if (newScene === scene) sceneEntered.Fire();
 		});
 		return sceneEntered;
 	}
 
-	public setScene(scene: Scene) {
+	public setScene(scene: Scene): void {
 		ClientStore.dispatch({ type: "SetScene", scene });
 	}
 
-	private onSceneChangedCallback(newScene: Scene, oldScene?: Scene) {
-		Log.Debug(`Scene changed from ${oldScene} to ${newScene}`);
-		this.onSceneChanged.Fire(newScene, oldScene);
+	/** Handles updating  */
+	private onSceneChanged(newScene: Scene, oldScene?: Scene) {
+		Log.Debug("New scene: {Scene}", newScene);
+		this.OnSceneChanged.Fire(newScene, oldScene);
 	}
 }
