@@ -1,4 +1,5 @@
-import { Controller, OnInit, OnStart } from "@flamework/core";
+import { Controller, Modding, OnInit } from "@flamework/core";
+import { Constructor } from "@flamework/core/out/types";
 import Log from "@rbxts/log";
 import Roact from "@rbxts/roact";
 import RoactRodux, { StoreProvider } from "@rbxts/roact-rodux";
@@ -8,34 +9,24 @@ import { ClientStore, IClientStore, StoreActions } from "client/rodux/rodux";
 import { Scene } from "types/enums/scene";
 import { SceneController } from "./scene-controller";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ClassDecorator = (ctor: any) => any;
-type Constructor<T = Roact.Component> = new (...args: never[]) => T;
-
 const noop = () => {};
 
 export type StoreDispatch = Rodux.Dispatch<StoreActions>;
-
 export interface IAppConfig {
 	name: string;
 	requiredScenes?: Scene[];
+	tag?: string;
 	displayOrder?: number;
 	ignoreGuiInset?: boolean;
 	mapStateToProps?: (state: IClientStore) => unknown;
 	mapDispatchToProps?: (dispatch: StoreDispatch) => unknown;
 }
 
-interface AppInfo {
-	ctor: Constructor;
-	config: IAppConfig;
-	identifier: string;
-}
-
-export declare function App(config: IAppConfig): ClassDecorator;
+export const App = Modding.createDecorator<[IAppConfig]>("Class", (descriptor, [{ name }]) => {});
 
 @Controller({})
 export class AppController implements OnInit {
-	private apps = new Map<Constructor, AppInfo>();
+	private apps = new Map<Constructor, IAppConfig>();
 	private appHandles = new Map<Constructor, Roact.Tree>();
 
 	private playerGui = Players.LocalPlayer.FindFirstChildOfClass("PlayerGui")!;
@@ -43,32 +34,40 @@ export class AppController implements OnInit {
 	constructor(private readonly sceneController: SceneController) {}
 
 	onInit() {
-		this.sceneController.onSceneChanged.Connect((n, o) => this.onSceneChanged(n, o));
+		this.sceneController.onSceneChanged.Connect((newScene, oldScene) => this.onSceneChanged(newScene, oldScene));
+
+		const constructors = Modding.getDecorators<typeof App>();
+		for (const { object, arguments: args } of constructors) {
+			const config = args[0];
+			this.apps.set(object, config);
+		}
 	}
 
 	private onSceneChanged(newScene: Scene, oldScene?: Scene) {
-		for (const [element, { config }] of this.apps) {
-			if (config.requiredScenes === undefined) continue;
+		for (const [object, config] of this.apps) {
+			// if open now and was not open before, show app
+			// if closed now and was open before, hide app
+			const openNow = config.requiredScenes?.includes(newScene);
+			const openBefore = oldScene !== undefined ? config.requiredScenes?.includes(oldScene) : false;
 
-			const usedToBeOpen = oldScene !== undefined ? config.requiredScenes.includes(oldScene) : false;
-			const openNow = config.requiredScenes.includes(newScene);
+			// if open now, print debug message
+			if (openNow) {
+				Log.Info(`Showing {Name}`, config.name);
+			}
 
-			if (usedToBeOpen && !openNow) {
-				// this app should be hidden
-				Log.Debug(`HIDING app "{Name}"`, config.name);
-				this.hideApp(element);
-			} else if (!usedToBeOpen && openNow) {
-				// this app should be shown
-				Log.Debug(`SHOWING app "{Name}"`, config.name);
-				this.showApp(element);
+			if (openNow && !openBefore) {
+				this.showApp(object);
+			} else if (!openNow && openBefore) {
+				this.hideApp(object);
 			}
 		}
 	}
 
-	private showApp(element: Constructor) {
-		const { config } = this.apps.get(element)!;
+	private showApp(object: Constructor) {
+		const config = this.apps.get(object)!;
 
-		let component = element as unknown as Roact.FunctionComponent;
+		let component = object as unknown as Roact.FunctionComponent;
+		// if map state to props or map dispatch to props is defined, connect it with roact rodux
 		if (config.mapStateToProps || config.mapDispatchToProps) {
 			const mapStateToProps = config.mapStateToProps || noop;
 			const mapDispatchToProps = config.mapDispatchToProps || noop;
@@ -95,13 +94,13 @@ export class AppController implements OnInit {
 			config.name,
 		);
 
-		this.appHandles.set(element, handle);
+		this.appHandles.set(object, handle);
 		Log.Debug(`Mounted new app instance "{Name}"`, config.name);
 	}
 
-	private hideApp(element: Constructor) {
-		const handle = this.appHandles.get(element);
-		if (handle === undefined) return Log.Warn(`No handle found for element "{@Element}"`, element);
+	private hideApp(object: Constructor) {
+		const handle = this.appHandles.get(object);
+		if (!handle) return Log.Warn(`Could not find handle for {@Object}`, object);
 		Roact.unmount(handle);
 	}
 }
